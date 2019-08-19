@@ -1,0 +1,4 @@
+flask
+requests
+slackclient
+bs4
