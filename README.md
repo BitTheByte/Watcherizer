@@ -28,8 +28,8 @@ Your slack commands should look like this
 
 
 
-Go to your slack bot dashboard, click on `OAuth & Permissions` And open `watcherizer.py` with your editor of choice then change line [#23](https://github.com/BitTheByte/Watcherizer/watcherizer.py#L23) to `Slack Channel ID` and 
-line [#24](https://github.com/BitTheByte/Watcherizer/watcherizer.py#L24) to `Bot User OAuth Access Token`
+Go to your slack bot dashboard, click on `OAuth & Permissions` And open `watcherizer.py` with your editor of choice then change line [#23](https://github.com/BitTheByte/Watcherizer/blob/master/watcherizer.py#L23) to `Slack Channel ID` and 
+line [#24](https://github.com/BitTheByte/Watcherizer/blob/master/watcherizer.py#L24) to `Bot User OAuth Access Token`
 
 You will also need to install python third party libraries using the following command:
 ```
