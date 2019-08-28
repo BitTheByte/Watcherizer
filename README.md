@@ -1,5 +1,5 @@
 # Watcherizer
-Slack Bot for monitoring websites for codebase changes
+Slack Bot to monitor websites for code changes, special thanks to [@k3r1it0](https://github.com/k3r1it0) for suggesting this idea
 ![](https://i.ibb.co/ySG2r6v/Untitled-1.png)  
 
 
