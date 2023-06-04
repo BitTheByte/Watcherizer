@@ -31,7 +31,7 @@ report_fmt    = """
 app = Flask(__name__)
 
 if os.path.isfile('watch.db'):
-	watch_list = set([l.strip() for l in open('watch.db','r').readlines()])
+	watch_list = {l.strip() for l in open('watch.db','r').readlines()}
 else:
 	watch_list = set()
 
@@ -74,11 +74,11 @@ def extract_sources(url,content):
 	sources = soup.findAll('script',{"src":True})
 	src2dict = {}
 	for source in sources:
-		abspath = urljoin(url + "/",source['src'])
-		if abspath == None: continue
+		abspath = urljoin(f"{url}/", source['src'])
+		if abspath is None: continue
 		source_content = get(abspath).encode('utf-8').decode('utf-8')
 		md5hash = tokenize(source_content)
-		src2dict.update({abspath:{'md5hash': md5hash,'content': source_content}})
+		src2dict[abspath] = {'md5hash': md5hash,'content': source_content}
 	return src2dict
 
 def scrape(url):
@@ -93,25 +93,25 @@ def scrape(url):
 
 def compare(stored,current):
 	results = {'msg':[]}
-		
+
 	new_sources     = [x for x in set(current['sources'].keys()) if x not in set(stored['sources'].keys())]
 	removed_sources = [x for x in set(stored['sources'].keys()) if x not in set(current['sources'].keys())]
 
 	for source in stored['sources'].keys():
-		if not source in current['sources'].keys(): continue
+		if source not in current['sources'].keys(): continue
 
 		if current['sources'][source]['md5hash'] != stored['sources'][source]['md5hash']:
-			results['msg'].append("edited: %s" % source)
-	
-	[results['msg'].append("added: %s" % new) for new in new_sources]
-	[results['msg'].append("removed: %s" % rm) for rm in removed_sources]
+			results['msg'].append(f"edited: {source}")
+
+	[results['msg'].append(f"added: {new}") for new in new_sources]
+	[results['msg'].append(f"removed: {rm}") for rm in removed_sources]
 
 	if stored['md5hash'] == current['md5hash']:
 		if results['msg'] == []: return 0
 		results['msg'].append("html: same")
 	else:
 		results['msg'].append("html: edited")
-		results.update({'body_diff': diff(stored['content'],current['content'])})
+		results['body_diff'] = diff(stored['content'],current['content'])
 
 	return results
 	
@@ -119,18 +119,20 @@ def scan_changes(target):
 
 	timestamp = datetime.datetime.now().strftime("%d%m%Y%H%M%S")
 	slugified = slugify(target)
-	path      = 'storage/%s_%s' % (timestamp,slugified)
+	path = f'storage/{timestamp}_{slugified}'
 	scraped   = scrape(target)
 
-	if scraped == None: return None
+	if scraped is None: return None
 
-	if glob("storage/*_%s" % slugified):
-		stored_path = ntpath.basename(max(glob("storage/*_%s" % slugified), key=os.path.getctime))
+	if glob(f"storage/*_{slugified}"):
+		stored_path = ntpath.basename(
+			max(glob(f"storage/*_{slugified}"), key=os.path.getctime)
+		)
 	else:
 		stored_path = None
 
 	if stored_path:
-		stored           = json.loads( read('storage/%s' % stored_path) )
+		stored = json.loads(read(f'storage/{stored_path}'))
 		compare_result   =  compare(stored, scraped)
 		if compare_result == 0: return
 
@@ -139,7 +141,7 @@ def scan_changes(target):
 			return compare_result
 	else:
 		write(path, json.dumps(scraped))
-	
+
 	return None
 
 def scanner():
@@ -150,7 +152,7 @@ def scanner():
 			if not changes: continue
 
 			report_msg = report_fmt.format(target=target,changes='\n - '.join(changes['msg'][::-1]))
-			if not 'body_diff' in changes:
+			if 'body_diff' not in changes:
 				slackmsg(report_msg)
 			else:
 				slackdiff(report_msg,changes['body_diff'])
@@ -163,11 +165,10 @@ def scanner():
 @app.route("/monitor",methods=['POST'])
 def monitor():
 	target = request.form.get('text')
-	if get(target):
-			watch_list.add(target)
-			return "Added %s to watch list" % (target)
-	else:
-		return "Invalid target: %s" % target
+	if not get(target):
+		return f"Invalid target: {target}"
+	watch_list.add(target)
+	return f"Added {target} to watch list"
 
 @app.route("/list",methods=['POST'])
 def wlist():
@@ -178,8 +179,7 @@ def wlist():
 @app.route("/watchtime",methods=['POST'])
 def watchtime():
 	global sleep_time
-	slack_msg = request.form.get('text').strip()
-	if slack_msg:
+	if slack_msg := request.form.get('text').strip():
 		sleep_time = int(slack_msg)
 		return 'Watching frequency updated to %i second(s)' % sleep_time
 	return 'Current watching frequency is: %i second(s)' % sleep_time
@@ -187,11 +187,10 @@ def watchtime():
 @app.route("/remove",methods=['POST'])
 def wremove():
 	target = request.form.get('text').strip()
-	if target in watch_list:
-		watch_list.remove(target)
-		return '%s removed from the watching list' % (target)
-	else:
-		return '%s is not on the watching list' % (target)
+	if target not in watch_list:
+		return f'{target} is not on the watching list'
+	watch_list.remove(target)
+	return f'{target} removed from the watching list'
 
 
 init(autoreset=1)
